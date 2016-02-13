@@ -29,7 +29,7 @@ int knockIdx = 0;
 
 void openLock() {
   Serial.println("open");
-  myservo.write(10);
+  myservo.write(178);
 //  for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
 //    // in steps of 1 degree
 //    myservo.write(pos);              // tell servo to go to position in variable 'pos'
@@ -39,7 +39,7 @@ void openLock() {
 
 void closeLock() {
   Serial.println("close");
-  myservo.write(178);
+  myservo.write(45);
 //  for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
 //    myservo.write(pos);              // tell servo to go to position in variable 'pos'
 //    delay(8);                       // waits 15ms for the servo to reach the position
@@ -47,17 +47,17 @@ void closeLock() {
 }
 
 
-void dumpKnock(int k, int i) {
+void dumpKnock(int k, int i, float percent) {
   Serial.print("dumpKnock: ref:");
   Serial.print(knocks[i]);
   Serial.print(" idx:");
   Serial.print(i);
   Serial.print(" knock:");
   Serial.print(k);
-  Serial.print(" -20%:");
-  Serial.print((k*.8));
-  Serial.print(" +20%:");
-  Serial.print((k*1.2));  
+  Serial.print(" -%:");
+  Serial.print((k*(1-percent)));
+  Serial.print(" +%:");
+  Serial.print((k*(1+percent)));  
   Serial.println(" ");
   
 }
@@ -81,20 +81,19 @@ int verifyPattern() {
     if ((m - lastDebounceTime) > debounceDelay && sensorReading >= threshold) {
       lastDebounceTime = m;
       k = m - lastKnock;
-      dumpKnock(k, i);
+      dumpKnock(k, i, .4);
       lastKnock = m;
-      if( knocks[i] > (k*.8) && knocks[i] < (k*1.2) ) {
-        valid = 1;
+      if( knocks[i] > (k*.6) && knocks[i] < (k*1.4) ) {
+        valid ++;
       } else {
         valid = 0;
-        break;
       }
       i++;
     }
   }  
   Serial.print("Result: ");
-  Serial.println(valid);
-  return valid;
+  Serial.println((valid == i));
+  return valid == i;
 }
 
 void recordPattern() {
@@ -153,11 +152,11 @@ void loop() {
     lastDebounceTime = millis();
   // if the sensor reading is greater than the threshold:
     // toggle the status of the ledPin:
-    lockState = !lockState;
     // update the LED pin itself:
 //    digitalWrite(ledPin, lockState);
 
     if( verifyPattern() ) {
+      lockState = !lockState;
       if( lockState ) {
         openLock();
       } else {
