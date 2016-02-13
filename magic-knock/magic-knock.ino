@@ -14,14 +14,15 @@ const int servoPin = 9;
 
 // these variables will change:
 int sensorReading = 0;      // variable to store the value read from the sensor pin
-int piezoState = LOW;         // variable used to store the last LED status, to toggle the light
-int lastPiezoState = LOW;
+int lockState = LOW;         // variable used to store the last LED status, to toggle the light
+int lastlockState = LOW;
 long lastDebounceTime = 0;  // the last time the output pin was toggled
 long debounceDelay = 50;    // the debounce time; increase if the output flickers
 
 int recordingMode = LOW;  // when HIGH the device will store the next 4 knocks
 
-long knocks[4];
+int knocksQty = 2;
+long knocks[2];
 long lastKnock = 0;
 int knockIdx = 0;
 
@@ -41,35 +42,64 @@ void closeLock() {
   }
 }
 
-void veryfyPattern() {
+
+void dumpKnock(int k, int i) {
+  Serial.print("dumpKnock: ref:");
+  Serial.print(knocks[i]);
+  Serial.print(" idx:");
+  Serial.print(i);
+  Serial.print(" knock:");
+  Serial.print(k);
+  Serial.print(" -20%:");
+  Serial.print((k*.8));
+  Serial.print(" +20%:");
+  Serial.print((k*1.2));  
+  Serial.println(" ");
+  
+}
+
+int verifyPattern() {
   Serial.println("Checking Pattern...");
   long m;
-  lastDebounceTime = 0;
-  int first = HIGH;
-  while( knockIdx<4 ) {
+  int k;
+  int i = 0;
+  int valid = 0;
+//  lastDebounceTime = m;
+  lastKnock = millis();
+  long timeout = millis() + 10000; // 10 senconds in the future
+  while( i<knocksQty ) {
     m = millis();
+    if ( m > timeout ) {
+      Serial.println("Timeout!!");
+      return 0; // is invalid
+    }
     sensorReading = analogRead(knockSensor);
     if ((m - lastDebounceTime) > debounceDelay && sensorReading >= threshold) {
-      Serial.println(knockIdx);
-
       lastDebounceTime = m;
-      if(!first) {
-        knocks[knockIdx] = m - lastKnock;
-        knockIdx ++;      
-      } else {
-        first = LOW;
-      }
+      k = m - lastKnock;
+      dumpKnock(k, i);
       lastKnock = m;
+      if( knocks[i] > (k*.8) && knocks[i] < (k*1.2) ) {
+        valid = 1;
+      } else {
+        valid = 0;
+        break;
+      }
+      i++;
     }
   }  
+  Serial.print("Result: ");
+  Serial.println(valid);
+  return valid;
 }
 
 void recordPattern() {
   Serial.println("Recording...");
   long m;
+  digitalWrite(ledPin, HIGH);
   lastDebounceTime = 0;
   int first = HIGH;
-  while( knockIdx<4 ) {
+  while( knockIdx<knocksQty ) {
     m = millis();
     sensorReading = analogRead(knockSensor);
     if ((m - lastDebounceTime) > debounceDelay && sensorReading >= threshold) {
@@ -87,14 +117,11 @@ void recordPattern() {
   }
   
   Serial.print("Pattern: ");
-  Serial.print(knocks[0]);
-  Serial.print(", ");
-  Serial.print(knocks[1]);
-  Serial.print(", ");
-  Serial.print(knocks[2]);
-  Serial.print(", ");
-  Serial.print(knocks[3]);
-  Serial.println("");
+  for( int i=0; i<knocksQty; i++ ) {
+    Serial.print(knocks[i]);
+    Serial.print(", ");
+  }
+  digitalWrite(ledPin, LOW);
 }
 
 
@@ -122,14 +149,16 @@ void loop() {
     lastDebounceTime = millis();
   // if the sensor reading is greater than the threshold:
     // toggle the status of the ledPin:
-    piezoState = !piezoState;
+    lockState = !lockState;
     // update the LED pin itself:
-    digitalWrite(ledPin, piezoState);
+//    digitalWrite(ledPin, lockState);
 
-    if( piezoState ) {
-      openLock();
-    } else {
-      closeLock();
+    if( verifyPattern() ) {
+      if( lockState ) {
+        openLock();
+      } else {
+        closeLock();
+      }
     }
     // send the string "Knock!" back to the computer, followed by newline
 //    Serial.println("Knock!");
