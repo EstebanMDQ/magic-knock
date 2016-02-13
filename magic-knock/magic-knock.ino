@@ -28,18 +28,22 @@ int knockIdx = 0;
 
 
 void openLock() {
-  for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
-    // in steps of 1 degree
-    myservo.write(pos);              // tell servo to go to position in variable 'pos'
-    delay(8);                       // waits 15ms for the servo to reach the position
-  }  
+  Serial.println("open");
+  myservo.write(10);
+//  for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
+//    // in steps of 1 degree
+//    myservo.write(pos);              // tell servo to go to position in variable 'pos'
+//    delay(8);                       // waits 15ms for the servo to reach the position
+//  }  
 }
 
 void closeLock() {
-  for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
-    myservo.write(pos);              // tell servo to go to position in variable 'pos'
-    delay(8);                       // waits 15ms for the servo to reach the position
-  }
+  Serial.println("close");
+  myservo.write(178);
+//  for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
+//    myservo.write(pos);              // tell servo to go to position in variable 'pos'
+//    delay(8);                       // waits 15ms for the servo to reach the position
+//  }
 }
 
 
